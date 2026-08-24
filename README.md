@@ -118,6 +118,11 @@ yaşam döngüsü sırası ve iş kuralı kontrollerini uygular. Hatalı kaynak 
 Silver'a yazılmadan işlem durur. Sipariş ve event yükleri tek transaction içinde
 gerçekleşir; yüklerden biri başarısız olursa ikisi de geri alınır.
 
+Sentetik üretici bilgisayarın her gün açık olduğunu varsaymaz. Son üretilen iş
+tarihini veritabanından bulur ve bilgisayar tekrar açıldığında bu tarihten düne
+kadar eksik günleri kronolojik sırayla tamamlar. Aynı tarih ikinci kez üretilmez;
+başka bir eksik tarih varsa aynı çalışmada işlenir.
+
 ## Gold görünümleri
 
 - `gold.current_shipment_state`: Siparişin en son eventi

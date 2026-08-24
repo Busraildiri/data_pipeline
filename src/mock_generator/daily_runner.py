@@ -9,6 +9,7 @@ from shipment_factory import generate_daily_orders
 from progression_engine import progress_all_shipments, is_terminal
 from lifecycle import EVENT_STATUS_MAP, TERMINAL_STATUSES
 from table_mapper import split_shipment_to_tables
+from schedule import missing_business_dates
 import sys
 import os
 
@@ -71,28 +72,8 @@ def load_open_shipments_from_db(engine) -> list[dict]:
     return open_shipments
 
 
-def run_daily_update():
-    engine = get_engine()
-    event_time = datetime.now() - timedelta(days=1)  # sysdate-1
-
-    with engine.connect() as conn:
-        already_ran = conn.execute(
-            text("SELECT COUNT(*) FROM orders WHERE DATE(created_at) = :run_date"),
-            {"run_date": event_time.date()},
-        ).scalar_one()
-        if already_ran:
-            print(
-                f"{event_time.date()} iş günü daha önce üretildi "
-                f"({already_ran} sipariş); çalışma atlandı."
-            )
-            return
-
-        day_count = conn.execute(
-            text("SELECT COUNT(DISTINCT DATE(created_at)) FROM orders")
-        ).scalar_one()
-
-    day_number = (day_count or 0) + 1
-
+def run_business_date(engine, event_time: datetime, day_number: int):
+    """Tek bir eksik iş tarihinin sipariş ve eventlerini üretir."""
     open_shipments = load_open_shipments_from_db(engine)
     print(f"DB'den okunan açık kargo sayısı: {len(open_shipments)}")
 
@@ -176,6 +157,29 @@ def run_daily_update():
     print(f"Gün {day_number} ({event_time.date()}): {len(new_orders)} yeni sipariş, "
           f"{len(all_shipments)} kargo işlendi, "
           f"{len(new_order_rows)} yeni orders satırı yazıldı")
+
+
+def run_daily_update():
+    engine = get_engine()
+    through_date = (datetime.now() - timedelta(days=1)).date()
+
+    with engine.connect() as conn:
+        last_generated_date = conn.execute(
+            text("SELECT MAX(DATE(created_at)) FROM orders")
+        ).scalar_one()
+        day_count = conn.execute(
+            text("SELECT COUNT(DISTINCT DATE(created_at)) FROM orders")
+        ).scalar_one()
+
+    dates_to_generate = missing_business_dates(last_generated_date, through_date)
+    if not dates_to_generate:
+        print(f"{through_date} tarihine kadar eksik sentetik veri günü yok.")
+        return
+
+    event_clock = datetime.now().time().replace(microsecond=0)
+    for offset, business_date in enumerate(dates_to_generate, start=1):
+        event_time = datetime.combine(business_date, event_clock)
+        run_business_date(engine, event_time, (day_count or 0) + offset)
 
 
 if __name__ == "__main__":
