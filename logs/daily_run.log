@@ -1,0 +1,6 @@
+DB'den okunan acik kargo sayisi: 32
+DB'ye yazildi: 6 orders, 12 transfer_events, 7 branch_events, 3 courier_events
+Gun 2 (2026-08-20): 6 yeni siparis, 38 kargo islendi, 6 yeni orders satiri yazildi
+DB'den okunan acik kargo sayisi: 38
+DB'ye yazildi: 7 orders, 17 transfer_events, 12 branch_events, 5 courier_events
+Gun 2 (2026-08-20): 7 yeni siparis, 45 kargo islendi, 7 yeni orders satiri yazildi
