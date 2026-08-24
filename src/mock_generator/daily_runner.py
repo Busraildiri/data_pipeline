@@ -1,6 +1,6 @@
-﻿# daily_runner.py
-# Artimli (incremental) gunluk calisma: DB'den acik kargolari okur,
-# onlari ilerletir, o gunun yeni siparislerini ekler, SADECE yeni event'leri DB'ye yazar.
+# daily_runner.py
+# Artımlı (incremental) günlük çalışma: DB'den açık kargoları okur,
+# onları ilerletir, o günün yeni siparişlerini ekler, SADECE yeni event'leri DB'ye yazar.
 
 from datetime import datetime, timedelta
 from sqlalchemy import text
@@ -16,7 +16,7 @@ sys.path.append(os.path.join(os.path.dirname(os.path.dirname(__file__)), "transf
 from business_rules import resolve_delivery_failed_status
 
 sys.path.append(os.path.join(os.path.dirname(os.path.dirname(__file__)), "load"))
-from postgres_writer import get_engine, write_tables_to_db
+from mysql_writer import get_engine, write_tables_to_db
 
 
 def derive_current_status(shipment: dict) -> str:
@@ -27,7 +27,11 @@ def derive_current_status(shipment: dict) -> str:
     return EVENT_STATUS_MAP.get(last_event, "UNKNOWN")
 
 
-def load_open_shipments_from_db(engine) -> list:
+def load_open_shipments_from_db(engine) -> list[dict]:
+    """
+    DB'den order_status='ACTIVE' olan siparişleri ve event geçmişlerini okur,
+    son event'i terminal (DELIVERED/DELIVERY_FAILED_FINAL) olmayanları döner.
+    """
     open_shipments = []
 
     with engine.connect() as conn:
@@ -56,7 +60,7 @@ def load_open_shipments_from_db(engine) -> list:
             last_event = events[-1]["event_type"]
 
             if last_event == "DELIVERED":
-                continue
+                continue  # zaten kapanmış, tekrar işlenmesin
 
             open_shipments.append({
                 "shipment_id": shipment_id,
@@ -72,14 +76,15 @@ def run_daily_update():
     engine = get_engine()
 
     open_shipments = load_open_shipments_from_db(engine)
-    print(f"DB'den okunan acik kargo sayisi: {len(open_shipments)}")
+    print(f"DB'den okunan açık kargo sayısı: {len(open_shipments)}")
 
     with engine.connect() as conn:
         day_count = conn.execute(text("SELECT COUNT(DISTINCT DATE(created_at)) FROM orders")).fetchone()[0]
     day_number = (day_count or 0) + 1
 
-    event_time = datetime.now() - timedelta(days=1)
+    event_time = datetime.now() - timedelta(days=1)  # sysdate-1
 
+    # O günün yeni siparişleri
     new_orders = generate_daily_orders(event_time, day_number)
     new_shipments = [
         {
@@ -106,12 +111,14 @@ def run_daily_update():
         is_new = shipment_id not in previous_event_counts
 
         if is_new:
+            # Tamamen yeni kargo: tüm event geçmişini (henüz sadece CREATED + belki 1 ilerleme) işle
             tables = split_shipment_to_tables(shipment, shipment["order_record"])
             new_order_rows.append(tables["orders"])
             new_transfer_events.extend(tables["transfer_events"])
             new_branch_events.extend(tables["branch_events"])
             new_courier_events.extend(tables["courier_events"])
         else:
+            # Zaten açık olan kargo: SADECE bu run'da eklenen yeni event'i yaz
             prev_count = previous_event_counts[shipment_id]
             if len(shipment["events"]) > prev_count:
                 new_event = shipment["events"][-1]
@@ -139,9 +146,9 @@ def run_daily_update():
 
     write_tables_to_db(new_order_rows, new_transfer_events, new_branch_events, new_courier_events)
 
-    print(f"Gun {day_number} ({event_time.date()}): {len(new_orders)} yeni siparis, "
-          f"{len(all_shipments)} kargo islendi, "
-          f"{len(new_order_rows)} yeni orders satiri yazildi")
+    print(f"Gün {day_number} ({event_time.date()}): {len(new_orders)} yeni sipariş, "
+          f"{len(all_shipments)} kargo işlendi, "
+          f"{len(new_order_rows)} yeni orders satırı yazıldı")
 
 
 if __name__ == "__main__":

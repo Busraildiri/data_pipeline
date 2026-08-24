@@ -1,3 +1,4 @@
 @echo off
-cd /d C:\Projects\cargo-pipeline
-.\venv\Scripts\python.exe src\mock_generator\daily_runner.py >> logs\daily_run.log 2>&1
+cd /d C:\Users\busra\cargo-data-pipeline
+call venv\Scripts\activate.bat
+python src\mock_generator\daily_runner.py >> logs\daily_run.log 2>&1

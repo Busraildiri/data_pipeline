@@ -1,5 +1,5 @@
-﻿# shipment_factory.py
-# Yeni CREATED kargo (shipment) uretimi.
+# shipment_factory.py
+# Yeni CREATED kargo (shipment) üretimi.
 
 import random
 import uuid
@@ -9,13 +9,13 @@ from faker import Faker
 fake = Faker("tr_TR")
 
 BRANCH_NAME = "Misa"
-BRANCH_CITY = "Istanbul"
+BRANCH_CITY = "İstanbul"
 
 PRODUCT_CATEGORIES = ["COSMETICS", "ELECTRONICS"]
 SERVICE_TYPES = ["standard", "express"]
 
 TURKISH_CITIES = [
-    "Antalya", "Ankara", "Izmir", "Bursa", "Adana", "Konya",
+    "Istanbul", "Ankara", "Izmir", "Bursa", "Adana", "Konya",
     "Gaziantep", "Kayseri", "Trabzon", "Samsun", "Eskisehir", "Mersin"
 ]
 
@@ -34,8 +34,8 @@ def generate_customer_id() -> str:
 
 def create_new_shipment(created_at: datetime) -> dict:
     """
-    Tek bir yeni CREATED kargo kaydi uretir.
-    created_at: bu kargonun olusturulma zamani (sysdate-1 mantigi runner'da hesaplanir)
+    Tek bir yeni CREATED kargo kaydı üretir.
+    created_at: bu kargonun oluşturulma zamanı (sysdate-1 mantığı runner'da hesaplanır)
     """
     return {
         "shipment_id": generate_shipment_id(),
@@ -49,23 +49,25 @@ def create_new_shipment(created_at: datetime) -> dict:
     }
 
 
-def generate_daily_orders(created_at: datetime, day_number: int) -> list:
+def generate_daily_orders(created_at: datetime, day_number: int) -> list[dict]:
     """
-    Bir gunluk yeni siparis listesini uretir.
-    day_number: kacinci gun (buyume egrisi icin) - 1'den baslar.
+    Bir günlük yeni sipariş listesini üretir.
+    day_number: kaçıncı gün (büyüme eğrisi için) — 1'den başlar.
     """
     base_orders = 5
     growth_per_day = 0.8
     target_mean = base_orders + growth_per_day * day_number
 
+    # Poisson dağılımı: ortalama etrafında gerçekçi rastgelelik üretir
     daily_count = max(1, int(random.gauss(target_mean, target_mean * 0.2)))
 
     return [create_new_shipment(created_at) for _ in range(daily_count)]
 
 
 if __name__ == "__main__":
-    today = datetime.now() - timedelta(days=1)
+    # Hızlı test: 5. gün için örnek üretim
+    today = datetime.now() - timedelta(days=1)  # sysdate-1
     orders = generate_daily_orders(today, day_number=5)
-    print(f"{len(orders)} yeni siparis uretildi:\n")
+    print(f"{len(orders)} yeni sipariş üretildi:\n")
     for order in orders:
         print(order)

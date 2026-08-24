@@ -1,6 +1,6 @@
-DB'den okunan acik kargo sayisi: 32
-DB'ye yazildi: 6 orders, 12 transfer_events, 7 branch_events, 3 courier_events
-Gun 2 (2026-08-20): 6 yeni siparis, 38 kargo islendi, 6 yeni orders satiri yazildi
-DB'den okunan acik kargo sayisi: 38
-DB'ye yazildi: 7 orders, 17 transfer_events, 12 branch_events, 5 courier_events
-Gun 2 (2026-08-20): 7 yeni siparis, 45 kargo islendi, 7 yeni orders satiri yazildi
+DB'den okunan açık kargo sayısı: 79
+DB'ye yazıldı: 13 orders, 25 transfer_events, 18 branch_events, 18 courier_events
+Gün 6 (2026-08-19): 13 yeni sipariş, 92 kargo işlendi, 13 yeni orders satırı yazıldı
+DB'den okunan açık kargo sayısı: 86
+DB'ye yazıldı: 7 orders, 21 transfer_events, 19 branch_events, 27 courier_events
+Gün 6 (2026-08-19): 7 yeni sipariş, 93 kargo işlendi, 7 yeni orders satırı yazıldı
