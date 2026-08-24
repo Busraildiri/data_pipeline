@@ -8,8 +8,13 @@ from faker import Faker
 
 fake = Faker("tr_TR")
 
+<<<<<<< HEAD
 BRANCH_NAME = "Misa"
 BRANCH_CITY = "İstanbul"
+=======
+BRANCH_NAME = "Tayna"
+BRANCH_CITY = "Antalya"
+>>>>>>> 7529cdccacb3c182669fdab7f9694325395f5ff5
 
 PRODUCT_CATEGORIES = ["COSMETICS", "ELECTRONICS"]
 SERVICE_TYPES = ["standard", "express"]
