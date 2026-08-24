@@ -46,3 +46,4 @@ SELECT
           FILTER (WHERE delivered_time IS NOT NULL), 1) AS avg_delivery_hours
 FROM delivery_times
 GROUP BY source_owner;
+
