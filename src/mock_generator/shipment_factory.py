@@ -1,26 +1,26 @@
 # shipment_factory.py
 # Yeni CREATED kargo (shipment) üretimi.
 
+import os
 import random
 import uuid
 from datetime import datetime, timedelta
 from faker import Faker
+from dotenv import load_dotenv
+
+load_dotenv()
 
 fake = Faker("tr_TR")
 
-<<<<<<< HEAD
-BRANCH_NAME = "Misa"
-BRANCH_CITY = "İstanbul"
-=======
-BRANCH_NAME = "Tayna"
-BRANCH_CITY = "Antalya"
->>>>>>> 7529cdccacb3c182669fdab7f9694325395f5ff5
+BRANCH_NAME = os.environ.get("BRANCH_NAME")
+BRANCH_CITY = os.environ.get("BRANCH_CITY")
 
 PRODUCT_CATEGORIES = ["COSMETICS", "ELECTRONICS"]
 SERVICE_TYPES = ["standard", "express"]
 
+# Ortak, sabit şehir listesi — hangi şube olursa olsun aynı liste kullanılır
 TURKISH_CITIES = [
-    "Istanbul", "Ankara", "Izmir", "Bursa", "Adana", "Konya",
+    "Istanbul", "Ankara", "Izmir", "Antalya", "Bursa", "Adana", "Konya",
     "Gaziantep", "Kayseri", "Trabzon", "Samsun", "Eskisehir", "Mersin"
 ]
 
@@ -42,12 +42,15 @@ def create_new_shipment(created_at: datetime) -> dict:
     Tek bir yeni CREATED kargo kaydı üretir.
     created_at: bu kargonun oluşturulma zamanı (sysdate-1 mantığı runner'da hesaplanır)
     """
+    # Kendi şubenin şehrine kargo göndermeyi engelle
+    possible_cities = [c for c in TURKISH_CITIES if c != BRANCH_CITY]
+
     return {
         "shipment_id": generate_shipment_id(),
         "order_id": generate_order_id(),
         "created_at": created_at,
         "sender_city": BRANCH_CITY,
-        "receiver_city": random.choice(TURKISH_CITIES),
+        "receiver_city": random.choice(possible_cities),
         "customer_id": generate_customer_id(),
         "service_type": random.choice(SERVICE_TYPES),
         "product_category": random.choice(PRODUCT_CATEGORIES),
@@ -63,7 +66,6 @@ def generate_daily_orders(created_at: datetime, day_number: int) -> list[dict]:
     growth_per_day = 0.8
     target_mean = base_orders + growth_per_day * day_number
 
-    # Poisson dağılımı: ortalama etrafında gerçekçi rastgelelik üretir
     daily_count = max(1, int(random.gauss(target_mean, target_mean * 0.2)))
 
     return [create_new_shipment(created_at) for _ in range(daily_count)]
@@ -73,6 +75,7 @@ if __name__ == "__main__":
     # Hızlı test: 5. gün için örnek üretim
     today = datetime.now() - timedelta(days=1)  # sysdate-1
     orders = generate_daily_orders(today, day_number=5)
+    print(f"Şube: {BRANCH_NAME} ({BRANCH_CITY})")
     print(f"{len(orders)} yeni sipariş üretildi:\n")
     for order in orders:
         print(order)
