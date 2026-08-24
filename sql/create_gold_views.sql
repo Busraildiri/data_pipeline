@@ -7,7 +7,7 @@ SELECT DISTINCT ON (order_key)
     event_type AS current_state,
     event_time AS state_since
 FROM silver.shipment_events
-ORDER BY order_key, event_time DESC;
+ORDER BY order_key, event_time DESC, event_id DESC;
 
 CREATE OR REPLACE VIEW gold.damage_rate_by_category AS
 SELECT

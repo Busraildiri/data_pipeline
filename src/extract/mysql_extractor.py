@@ -6,6 +6,12 @@ from dotenv import load_dotenv
 load_dotenv()
 
 TABLES = ["orders", "transfer_events", "branch_events", "courier_events"]
+ORDER_BY = {
+    "orders": "created_at, shipment_id",
+    "transfer_events": "shipment_id, event_time, id",
+    "branch_events": "shipment_id, event_time, id",
+    "courier_events": "shipment_id, event_time, id",
+}
 
 
 def _get_connection():
@@ -28,7 +34,7 @@ def extract_table(table_name: str, conn=None) -> pd.DataFrame:
         conn = _get_connection()
 
     try:
-        return pd.read_sql(f"SELECT * FROM {table_name}", conn)
+        return pd.read_sql(f"SELECT * FROM {table_name} ORDER BY {ORDER_BY[table_name]}", conn)
     finally:
         if own_connection:
             conn.close()

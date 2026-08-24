@@ -6,3 +6,5 @@ __pycache__/
 data/raw/
 data/processed/
 data/rejected/
+logs/*.log
+logs/*_log.txt

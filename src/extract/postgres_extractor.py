@@ -6,15 +6,21 @@ from dotenv import load_dotenv
 load_dotenv()
 
 TABLES = ["orders", "transfer_events", "branch_events", "courier_events"]
+ORDER_BY = {
+    "orders": "created_at, shipment_id",
+    "transfer_events": "shipment_id, event_time, id",
+    "branch_events": "shipment_id, event_time, id",
+    "courier_events": "shipment_id, event_time, id",
+}
 
 
 def _get_connection():
     return psycopg2.connect(
-        host=os.environ.get("PG_HOST"),
-        port=os.environ.get("PG_PORT", "5432"),
-        user=os.environ.get("PG_USER"),
-        password=os.environ.get("PG_PASSWORD"),
-        dbname=os.environ.get("PG_DBNAME"),
+        host=os.environ.get("MISA_PG_HOST", os.environ.get("PG_HOST")),
+        port=os.environ.get("MISA_PG_PORT", os.environ.get("PG_PORT", "5432")),
+        user=os.environ.get("MISA_PG_USER", os.environ.get("PG_USER")),
+        password=os.environ.get("MISA_PG_PASSWORD", os.environ.get("PG_PASSWORD")),
+        dbname=os.environ.get("MISA_PG_DBNAME", os.environ.get("PG_DBNAME")),
     )
 
 
@@ -28,7 +34,7 @@ def extract_table(table_name: str, conn=None) -> pd.DataFrame:
         conn = _get_connection()
 
     try:
-        return pd.read_sql(f"SELECT * FROM {table_name}", conn)
+        return pd.read_sql(f"SELECT * FROM {table_name} ORDER BY {ORDER_BY[table_name]}", conn)
     finally:
         if own_connection:
             conn.close()

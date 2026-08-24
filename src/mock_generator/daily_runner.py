@@ -57,32 +57,44 @@ def load_open_shipments_from_db(engine) -> list[dict]:
                     })
 
             events.sort(key=lambda e: e["event_time"])
-            last_event = events[-1]["event_type"]
-
-            if last_event == "DELIVERED":
-                continue  # zaten kapanmış, tekrar işlenmesin
-
-            open_shipments.append({
+            shipment = {
                 "shipment_id": shipment_id,
                 "product_category": order["product_category"],
                 "order_record": dict(order),
                 "events": events,
-            })
+            }
+            if is_terminal(shipment, derive_current_status(shipment)):
+                continue
+
+            open_shipments.append(shipment)
 
     return open_shipments
 
 
 def run_daily_update():
     engine = get_engine()
+    event_time = datetime.now() - timedelta(days=1)  # sysdate-1
+
+    with engine.connect() as conn:
+        already_ran = conn.execute(
+            text("SELECT COUNT(*) FROM orders WHERE DATE(created_at) = :run_date"),
+            {"run_date": event_time.date()},
+        ).scalar_one()
+        if already_ran:
+            print(
+                f"{event_time.date()} iş günü daha önce üretildi "
+                f"({already_ran} sipariş); çalışma atlandı."
+            )
+            return
+
+        day_count = conn.execute(
+            text("SELECT COUNT(DISTINCT DATE(created_at)) FROM orders")
+        ).scalar_one()
+
+    day_number = (day_count or 0) + 1
 
     open_shipments = load_open_shipments_from_db(engine)
     print(f"DB'den okunan açık kargo sayısı: {len(open_shipments)}")
-
-    with engine.connect() as conn:
-        day_count = conn.execute(text("SELECT COUNT(DISTINCT DATE(created_at)) FROM orders")).fetchone()[0]
-    day_number = (day_count or 0) + 1
-
-    event_time = datetime.now() - timedelta(days=1)  # sysdate-1
 
     # O günün yeni siparişleri
     new_orders = generate_daily_orders(event_time, day_number)
@@ -105,6 +117,7 @@ def run_daily_update():
     new_transfer_events = []
     new_branch_events = []
     new_courier_events = []
+    order_updates = []
 
     for shipment in all_shipments:
         shipment_id = shipment["shipment_id"]
@@ -144,7 +157,21 @@ def run_daily_update():
                         "is_damaged": new_event.get("is_damaged"),
                     })
 
-    write_tables_to_db(new_order_rows, new_transfer_events, new_branch_events, new_courier_events)
+                new_status = derive_current_status(shipment)
+                if new_status in TERMINAL_STATUSES:
+                    order_updates.append({
+                        "shipment_id": shipment_id,
+                        "order_status": new_status,
+                        "cancelled_at": event_time_val if new_status == "CANCELLED" else None,
+                    })
+
+    write_tables_to_db(
+        new_order_rows,
+        new_transfer_events,
+        new_branch_events,
+        new_courier_events,
+        order_updates,
+    )
 
     print(f"Gün {day_number} ({event_time.date()}): {len(new_orders)} yeni sipariş, "
           f"{len(all_shipments)} kargo işlendi, "

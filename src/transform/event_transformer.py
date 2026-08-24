@@ -10,7 +10,7 @@ def _shipment_to_order_key(orders_raw_df: pd.DataFrame, source_owner: str) -> di
 
 
 def transform_transfer_events(df, shipment_map, source_system, source_owner):
-    df = df.copy()
+    df = df.sort_values(["shipment_id", "event_time", "id"], kind="stable").copy()
     df["order_key"] = df["shipment_id"].map(shipment_map)
     # Aynı shipment içinde kaçıncı hop (TRANSFER_IN+TRANSFER_OUT bir çift = 1 hop)
     df["hop_number"] = df.groupby("shipment_id").cumcount() // 2 + 1
@@ -23,7 +23,7 @@ def transform_transfer_events(df, shipment_map, source_system, source_owner):
 
 
 def transform_branch_events(df, shipment_map, source_system, source_owner):
-    df = df.copy()
+    df = df.sort_values(["shipment_id", "event_time", "id"], kind="stable").copy()
     df["order_key"] = df["shipment_id"].map(shipment_map)
     df["source_system"] = source_system
     df["source_owner"] = source_owner
@@ -35,7 +35,7 @@ def transform_branch_events(df, shipment_map, source_system, source_owner):
 
 
 def transform_courier_events(df, shipment_map, source_system, source_owner):
-    df = df.copy()
+    df = df.sort_values(["shipment_id", "event_time", "id"], kind="stable").copy()
     df["order_key"] = df["shipment_id"].map(shipment_map)
     # Her shipment için kaçıncı teslimat denemesi (OUT_FOR_DELIVERY ile başlayan grup)
     df["delivery_attempt_number"] = (
