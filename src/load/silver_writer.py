@@ -56,7 +56,7 @@ def write_orders(orders_df: pd.DataFrame, conn=None):
 
 
 def write_events(events_df: pd.DataFrame, conn=None):
-    """silver.shipment_events tablosuna append eder (tekrar çalıştırınca duplicate olur — dikkat)."""
+    """silver.shipment_events tablosuna insert eder. Zaten var olan event'ler (aynı doğal key) atlanır."""
     own_connection = conn is None
     if own_connection:
         conn = _get_connection()
@@ -71,13 +71,15 @@ def write_events(events_df: pd.DataFrame, conn=None):
     insert_sql = f"""
         INSERT INTO silver.shipment_events ({", ".join(columns)})
         VALUES %s
+        ON CONFLICT (order_key, event_type, event_time, hop_number, delivery_attempt_number)
+        DO NOTHING
     """
 
     try:
         with conn.cursor() as cur:
             execute_values(cur, insert_sql, records)
         conn.commit()
-        print(f"silver.shipment_events: {len(records)} satır yazıldı.")
+        print(f"silver.shipment_events: {len(records)} satır denendi (yeni olanlar eklendi, mevcut olanlar atlandı).")
     finally:
         if own_connection:
             conn.close()

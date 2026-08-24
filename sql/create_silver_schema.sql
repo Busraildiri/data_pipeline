@@ -30,3 +30,8 @@ CREATE TABLE IF NOT EXISTS silver.shipment_events (
 CREATE INDEX IF NOT EXISTS idx_shipment_events_order_key ON silver.shipment_events(order_key);
 CREATE INDEX IF NOT EXISTS idx_shipment_events_event_type ON silver.shipment_events(event_type);
 CREATE INDEX IF NOT EXISTS idx_shipment_events_event_time ON silver.shipment_events(event_time);
+
+-- Idempotent ETL için: aynı event'in tekrar eklenmesini engeller
+ALTER TABLE silver.shipment_events
+ADD CONSTRAINT uq_shipment_events_natural_key
+UNIQUE (order_key, event_type, event_time, hop_number, delivery_attempt_number);
