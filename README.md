@@ -78,6 +78,7 @@ SILVER_PG_DBNAME=defaultdb
 
 BRANCH_NAME=Tayna
 BRANCH_CITY=Istanbul
+MOCK_TARGET=mysql
 ```
 
 Eski `PG_*` değişkenleri geriye dönük uyumluluk için desteklenir; yeni kurulumlarda
@@ -122,6 +123,19 @@ Sentetik üretici bilgisayarın her gün açık olduğunu varsaymaz. Son üretil
 tarihini veritabanından bulur ve bilgisayar tekrar açıldığında bu tarihten düne
 kadar eksik günleri kronolojik sırayla tamamlar. Aynı tarih ikinci kez üretilmez;
 başka bir eksik tarih varsa aynı çalışmada işlenir.
+
+Mock verinin yazılacağı kaynak `.env` içindeki `MOCK_TARGET` ile seçilir:
+
+```dotenv
+# Tayna bilgisayarı
+MOCK_TARGET=mysql
+
+# Misa bilgisayarı
+MOCK_TARGET=postgres
+```
+
+`postgres` seçiminde `MISA_PG_*`, `mysql` seçiminde `TAYNA_DB_*` bağlantı
+değişkenleri kullanılır.
 
 ## Gold görünümleri
 

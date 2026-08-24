@@ -33,8 +33,15 @@ def get_engine():
     )
 
 
-def write_tables_to_db(orders: list, transfer_events: list, branch_events: list, courier_events: list):
+def write_tables_to_db(
+    orders: list,
+    transfer_events: list,
+    branch_events: list,
+    courier_events: list,
+    order_updates: list | None = None,
+):
     engine = get_engine()
+    order_updates = order_updates or []
 
     with engine.begin() as conn:
         if orders:
@@ -45,9 +52,18 @@ def write_tables_to_db(orders: list, transfer_events: list, branch_events: list,
             pd.DataFrame(branch_events).to_sql("branch_events", conn, if_exists="append", index=False)
         if courier_events:
             pd.DataFrame(courier_events).to_sql("courier_events", conn, if_exists="append", index=False)
+        for update in order_updates:
+            conn.execute(
+                text(
+                    "UPDATE orders SET order_status = :order_status, "
+                    "cancelled_at = :cancelled_at WHERE shipment_id = :shipment_id"
+                ),
+                update,
+            )
 
     print(f"DB'ye yazildi: {len(orders)} orders, {len(transfer_events)} transfer_events, "
-          f"{len(branch_events)} branch_events, {len(courier_events)} courier_events")
+          f"{len(branch_events)} branch_events, {len(courier_events)} courier_events, "
+          f"{len(order_updates)} order güncellemesi")
 
 
 def create_tables():

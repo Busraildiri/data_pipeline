@@ -10,14 +10,19 @@ from progression_engine import progress_all_shipments, is_terminal
 from lifecycle import EVENT_STATUS_MAP, TERMINAL_STATUSES
 from table_mapper import split_shipment_to_tables
 from schedule import missing_business_dates
+from writer_selector import get_writer
 import sys
 import os
+
+PROJECT_ROOT = os.path.dirname(os.path.dirname(os.path.dirname(__file__)))
+sys.path.insert(0, PROJECT_ROOT)
 
 sys.path.append(os.path.join(os.path.dirname(os.path.dirname(__file__)), "transform"))
 from business_rules import resolve_delivery_failed_status
 
-sys.path.append(os.path.join(os.path.dirname(os.path.dirname(__file__)), "load"))
-from mysql_writer import get_engine, write_tables_to_db
+writer = get_writer(os.environ.get("MOCK_TARGET", "mysql"))
+get_engine = writer.get_engine
+write_tables_to_db = writer.write_tables_to_db
 
 
 def derive_current_status(shipment: dict) -> str:
