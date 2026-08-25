@@ -147,6 +147,20 @@ değişkenleri kullanılır.
 SELECT * FROM gold.branch_performance ORDER BY source_owner;
 ```
 
+## Mini ETL Replica
+
+LinkedIn/GitHub paylaşımı için Tayna ve Misa kaynaklarından Silver ve Gold
+katmanlarına uzanan akışı gösteren kare formatta bir animasyon üretilebilir:
+
+```powershell
+python -m pip install -r demo/requirements.txt
+python demo/mini_etl_animation.py
+```
+
+Çıktılar `demo/outputs/mini_etl_replica.gif` ve
+`demo/outputs/mini_etl_cover.png` olarak oluşturulur. Animasyon yalnızca
+sentetik örnek kayıtlar kullanır; bağlantı bilgisi veya gerçek veri içermez.
+
 ## Otomasyon ve güvenlik
 
 Kökteki `.bat` dosyaları Windows Task Scheduler örnekleridir. Kullanımdan önce

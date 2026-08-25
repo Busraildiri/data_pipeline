@@ -4,6 +4,7 @@
 import random
 import sys
 import os
+from datetime import timedelta
 sys.path.append(os.path.join(os.path.dirname(os.path.dirname(__file__)), "transform"))
 
 from lifecycle import TRANSITIONS, TERMINAL_STATUSES
@@ -19,7 +20,21 @@ CANCELLATION_PROBABILITY = 0.03
 
 DAMAGE_PROBABILITY = {
     "ELECTRONICS": 0.08,
-    "COSMETICS": 0.02,
+    "COSMETICS": 0.04,
+}
+
+# Misa/PostgreSQL tarafında geçmişte aynı ana çok yakın event'ler oluştuğu için
+# her lifecycle adımına gerçekçi bir alt/üst süre sınırı uygulanır. Tayna'nın
+# mevcut üretim davranışı değişmez.
+MISA_EVENT_DELAY_HOURS = {
+    "CANCELLED": (1, 6),
+    "TRANSFER_IN": (3, 8),
+    "TRANSFER_OUT": (6, 16),
+    "BRANCH_IN": (8, 20),
+    "COURIER_ASSIGNED": (2, 8),
+    "OUT_FOR_DELIVERY": (8, 20),
+    "DELIVERED": (4, 12),
+    "DELIVERY_FAILED": (4, 12),
 }
 
 
@@ -71,6 +86,21 @@ def choose_next_event(shipment: dict, last_event: str) -> str | None:
     return random.choice(valid_candidates)
 
 
+def resolve_event_time(shipment: dict, next_event: str, requested_event_time):
+    """Misa event'ini son event'ten sonra gerçekçi bir zamana yerleştirir."""
+    branch_name = os.environ.get("BRANCH_NAME", "").strip().casefold()
+    mock_target = os.environ.get("MOCK_TARGET", "").strip().casefold()
+    if branch_name not in {"misa", "mişa"} and mock_target != "postgres":
+        return requested_event_time
+
+    min_hours, max_hours = MISA_EVENT_DELAY_HOURS[next_event]
+    last_event_time = shipment["events"][-1]["event_time"]
+    earliest_event_time = last_event_time + timedelta(
+        hours=random.uniform(min_hours, max_hours)
+    )
+    return max(requested_event_time, earliest_event_time)
+
+
 def progress_shipment(shipment: dict, event_time) -> dict | None:
     if random.random() > PROGRESSION_PROBABILITY:
         return None
@@ -81,7 +111,10 @@ def progress_shipment(shipment: dict, event_time) -> dict | None:
     if next_event is None:
         return None
 
-    new_event = {"event_type": next_event, "event_time": event_time}
+    new_event = {
+        "event_type": next_event,
+        "event_time": resolve_event_time(shipment, next_event, event_time),
+    }
 
     if next_event == "DELIVERED":
         category = shipment["product_category"]

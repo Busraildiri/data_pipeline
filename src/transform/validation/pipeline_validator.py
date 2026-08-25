@@ -45,7 +45,13 @@ def validate_source_data(orders_df, transfer_df, branch_df, courier_df):
         )
 
     all_events = _event_frame(orders_df, transfer_df, branch_df, courier_df)
-    all_events = all_events.sort_values(["shipment_id", "event_time", "event_type"], kind="stable")
+    # Eşit timestamp'te event_type'a göre alfabetik sıralamak CANCELLED'ı
+    # CREATED'dan önceye taşıyordu. _event_frame CREATED satırlarını önce kurduğu
+    # için stable sıralama bu gerçek lifecycle sırasını korur.
+    all_events = all_events.sort_values(
+        ["shipment_id", "event_time"],
+        kind="stable",
+    )
     for shipment_id, shipment_events in all_events.groupby("shipment_id", sort=False):
         event_list = shipment_events["event_type"].tolist()
         shipment_errors = (

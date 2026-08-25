@@ -13,11 +13,23 @@ CREATE OR REPLACE VIEW gold.damage_rate_by_category AS
 SELECT
     o.category,
     o.source_owner,
-    COUNT(*) FILTER (WHERE e.event_type = 'DELIVERED') AS total_deliveries,
-    COUNT(*) FILTER (WHERE e.event_type = 'DELIVERED' AND e.is_damaged = true) AS damaged_deliveries,
+    COUNT(DISTINCT o.order_key) FILTER (
+        WHERE e.event_type = 'DELIVERED'
+    ) AS total_deliveries,
+    COUNT(DISTINCT o.order_key) FILTER (
+        WHERE e.event_type = 'DELIVERED' AND e.is_damaged = true
+    ) AS damaged_deliveries,
     ROUND(
-        100.0 * COUNT(*) FILTER (WHERE e.event_type = 'DELIVERED' AND e.is_damaged = true)
-        / NULLIF(COUNT(*) FILTER (WHERE e.event_type = 'DELIVERED'), 0), 2
+        100.0 * COUNT(DISTINCT o.order_key) FILTER (
+            WHERE e.event_type = 'DELIVERED' AND e.is_damaged = true
+        )
+        / NULLIF(
+            COUNT(DISTINCT o.order_key) FILTER (
+                WHERE e.event_type = 'DELIVERED'
+            ),
+            0
+        ),
+        2
     ) AS damage_rate_percent
 FROM silver.orders o
 JOIN silver.shipment_events e ON o.order_key = e.order_key

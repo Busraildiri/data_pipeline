@@ -2,6 +2,7 @@
 # Artımlı (incremental) günlük çalışma: DB'den açık kargoları okur,
 # onları ilerletir, o günün yeni siparişlerini ekler, SADECE yeni event'leri DB'ye yazar.
 
+import argparse
 from datetime import datetime, timedelta
 from sqlalchemy import text
 
@@ -11,6 +12,7 @@ from lifecycle import EVENT_STATUS_MAP, TERMINAL_STATUSES
 from table_mapper import split_shipment_to_tables
 from schedule import missing_business_dates
 from writer_selector import get_writer
+from misa_backfill import run_misa_backfill
 import sys
 import os
 
@@ -20,7 +22,8 @@ sys.path.insert(0, PROJECT_ROOT)
 sys.path.append(os.path.join(os.path.dirname(os.path.dirname(__file__)), "transform"))
 from business_rules import resolve_delivery_failed_status
 
-writer = get_writer(os.environ.get("MOCK_TARGET", "mysql"))
+MOCK_TARGET = os.environ.get("MOCK_TARGET", "mysql").strip().lower()
+writer = get_writer(MOCK_TARGET)
 get_engine = writer.get_engine
 write_tables_to_db = writer.write_tables_to_db
 
@@ -187,5 +190,43 @@ def run_daily_update():
         run_business_date(engine, event_time, (day_count or 0) + offset)
 
 
+def parse_args():
+    parser = argparse.ArgumentParser(
+        description="Günlük sentetik üretim veya Misa geçmiş demo batch'i."
+    )
+    parser.add_argument(
+        "--backfill-days-ago",
+        type=int,
+        help="Misa için bugünden kaç gün önceye geçmiş batch yazılacağı.",
+    )
+    parser.add_argument(
+        "--backfill-count",
+        type=int,
+        default=40,
+        help="Geçmiş batch sipariş sayısı (varsayılan: 40).",
+    )
+    return parser.parse_args()
+
+
 if __name__ == "__main__":
-    run_daily_update()
+    args = parse_args()
+    if args.backfill_days_ago is None:
+        run_daily_update()
+    else:
+        if MOCK_TARGET != "postgres":
+            raise ValueError(
+                "Misa backfill yalnızca MOCK_TARGET=postgres ile çalıştırılabilir."
+            )
+        if args.backfill_days_ago < 4:
+            raise ValueError(
+                "Teslimatların geleceğe taşmaması için en az 4 gün seçilmelidir."
+            )
+        target_date = (datetime.now() - timedelta(
+            days=args.backfill_days_ago
+        )).date()
+        run_misa_backfill(
+            get_engine(),
+            write_tables_to_db,
+            target_date,
+            args.backfill_count,
+        )

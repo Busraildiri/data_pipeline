@@ -8,3 +8,4 @@ data/processed/
 data/rejected/
 logs/*.log
 logs/*_log.txt
+demo/outputs/

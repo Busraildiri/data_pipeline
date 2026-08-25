@@ -28,3 +28,16 @@ class ValidationTests(unittest.TestCase):
         empty = pd.DataFrame(columns=["shipment_id", "event_type", "event_time"])
         with self.assertRaises(DataQualityError):
             validate_source_data(orders, transfer, empty, empty)
+
+    def test_same_timestamp_created_then_cancelled_is_valid(self):
+        timestamp = pd.Timestamp("2026-01-01 09:00:00")
+        orders = pd.DataFrame([{
+            "shipment_id": "S1",
+            "created_at": timestamp,
+            "cancelled_at": timestamp,
+        }])
+        empty = pd.DataFrame(
+            columns=["shipment_id", "event_type", "event_time"]
+        )
+
+        validate_source_data(orders, empty, empty, empty)
