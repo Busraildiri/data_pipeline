@@ -17,6 +17,7 @@ BRANCH_CITY = os.environ.get("BRANCH_CITY")
 
 PRODUCT_CATEGORIES = ["COSMETICS", "ELECTRONICS"]
 SERVICE_TYPES = ["standard", "express"]
+DAILY_ORDER_RANGE = (20, 35)
 
 # Ortak, sabit şehir listesi — hangi şube olursa olsun aynı liste kullanılır
 TURKISH_CITIES = [
@@ -60,13 +61,11 @@ def create_new_shipment(created_at: datetime) -> dict:
 def generate_daily_orders(created_at: datetime, day_number: int) -> list[dict]:
     """
     Bir günlük yeni sipariş listesini üretir.
-    day_number: kaçıncı gün (büyüme eğrisi için) — 1'den başlar.
+    Hacim, dashboard'da anlamlı günlük değişim oluşturacak sabit bantta tutulur.
+    day_number geriye dönük çağrı uyumluluğu için korunur.
     """
-    base_orders = 5
-    growth_per_day = 0.8
-    target_mean = base_orders + growth_per_day * day_number
-
-    daily_count = max(1, int(random.gauss(target_mean, target_mean * 0.2)))
+    del day_number
+    daily_count = random.randint(*DAILY_ORDER_RANGE)
 
     return [create_new_shipment(created_at) for _ in range(daily_count)]
 
